@@ -1,0 +1,97 @@
+#pane {
+    -fx-background-image: url('defaultBackground.jpg');
+    -fx-background-position: Center;
+}
+
+#accountButton {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 40;
+    -fx-border-color: #000000;
+    -fx-border-radius: 40;
+    -fx-background-insets: 0;
+    -fx-pref-height: 40;
+    -fx-pref-width: 40;
+}
+
+#accountMenu {
+    -fx-background-radius: 10;
+    -fx-background-color: transparent;
+}
+
+#accountMenu > .label {
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 14;
+}
+
+.btnLeftMenu{
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 20;
+    -fx-border-color: #000000;
+    -fx-border-radius: 20;
+    -fx-font-size: 14;
+    -fx-background-insets: 0;
+    -fx-effect: dropshadow(gaussian, #000000, 1, 2, 1, 1);
+    -fx-alignment: center center;
+    -fx-pref-width: 200;
+    -fx-pref-height: 10;
+    -fx-spacing: 10;
+}
+
+#btnSeparator {
+    -fx-padding: 20;
+}
+
+.regionLeftMenu {
+    -fx-pref-height: 23;
+}
+
+#topPane {
+    -fx-background-color: #b5c7a1;
+    -fx-pref-height: 100;
+    -fx-border-color: #666666;
+}
+
+#leftStack {
+    -fx-background-color: #aabeb0;
+    -fx-border-color: #000000;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+    -fx-min-width: 10;
+    -fx-min-height: 10;
+}
+
+#rightStack {
+    -fx-background-color: #aabeb0;
+    -fx-border-color: #000000;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+    -fx-min-width: 10;
+    -fx-min-height: 10;
+}
+
+.region {
+    -fx-background-color: #FFFFFF;
+    -fx-min-height: 60;
+    -fx-min-width: 80;
+}
+
+#separator{
+    -fx-background-color: #FFFFFF;
+}
+
+#splitView {
+    -fx-background-color: #FFFFFF;
+}
+
+#leftScrollPane{
+    -fx-background-color: #FFFCF3;
+    -fx-border-radius: 5;
+    -fx-border-color: #000000;
+    -fx-background-radius: 5;
+}
+
+#button {
+    -fx-effect: dropshadow(gaussian, #000000, 1, 2, 1, 1);
+    -fx-effect: dropshadow(three-pass-box, #000000, 1, 2, 0, 4);
+    -fx-background-insets: 0;
+}

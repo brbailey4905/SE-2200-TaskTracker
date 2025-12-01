@@ -1,20 +1,19 @@
 package com.example;
 
 import javafx.application.Application;
-import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+import javafx.geometry.*;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.CheckBoxListCell;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
+import java.net.URL;
 import java.time.LocalDate;
 import java.util.Comparator;
-import java.util.stream.Collectors;
 
 public class App extends Application {
 
@@ -34,6 +33,8 @@ public class App extends Application {
 
     private ToggleGroup viewToggleGroup;
 
+
+
     public static void main(String[] args) {
         launch(args);
     }
@@ -43,7 +44,6 @@ public class App extends Application {
         primaryStage.setTitle("Task Tracker");
 
         BorderPane root = new BorderPane();
-        root.setPadding(new Insets(10));
 
         // --- Left: Add Task Form ---
         VBox leftPane = createAddTaskPane();
@@ -52,13 +52,12 @@ public class App extends Application {
         VBox centerPane = createTaskListPane();
 
         // --- Right: Task Details / Subtasks ---
-        VBox rightPane = createTaskDetailsPane();
 
         root.setLeft(leftPane);
         root.setCenter(centerPane);
-        root.setRight(rightPane);
 
-        Scene scene = new Scene(root, 1100, 600);
+
+        Scene scene = new Scene(root, 1400, 900);
         primaryStage.setScene(scene);
         primaryStage.show();
     }
@@ -66,39 +65,63 @@ public class App extends Application {
     // -------------------- LEFT: Add Task --------------------
 
     private VBox createAddTaskPane() {
-        VBox box = new VBox(10);
-        box.setPadding(new Insets(10));
-        box.setPrefWidth(300);
-        box.setStyle("-fx-background-color: #f4f4f4;");
+        VBox box = new VBox();
+        box.setPadding(new Insets(15));
+        box.setId("pane");
+        box.setFillWidth(true);
+        box.getStylesheets().addAll(this.getClass().getResource("/com/example/style.css").toExternalForm());
+        box.setAlignment(Pos.TOP_CENTER);
 
-        Label header = new Label("Add New Task");
-        header.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        HBox accButtonBox = new HBox();
+        accButtonBox.setSpacing(10);
+        accButtonBox.setAlignment(Pos.CENTER_LEFT);
 
-        taskTitleField = new TextField();
-        taskTitleField.setPromptText("Task title");
+        Button accountButton = new Button();
+        accountButton.setId("accountButton");
+            URL userIcon = this.getClass().getResource("/com/example/icons/user.png");
+            ImageView userImage = new ImageView(new Image(userIcon.toExternalForm()));
+            userImage.setFitWidth(30);
+            userImage.setPreserveRatio(true);
+            accountButton.setGraphic(userImage);
 
-        taskDescriptionArea = new TextArea();
-        taskDescriptionArea.setPromptText("Task description");
-        taskDescriptionArea.setPrefRowCount(4);
 
-        taskDueDatePicker = new DatePicker();
-        taskDueDatePicker.setPromptText("Due date");
 
-        Button addTaskButton = new Button("Add Task");
-        addTaskButton.setMaxWidth(Double.MAX_VALUE);
-        addTaskButton.setOnAction(e -> handleAddTask());
+        accButtonBox.getChildren().add(accountButton);
 
-        box.getChildren().addAll(
-                header,
-                new Label("Title:"),
-                taskTitleField,
-                new Label("Description:"),
-                taskDescriptionArea,
-                new Label("Due date:"),
-                taskDueDatePicker,
-                addTaskButton
-        );
+        VBox filterButtonBox = new VBox(13);
+        filterButtonBox.setAlignment(Pos.CENTER);
+        MenuButton mnuAccount = new MenuButton();
+        mnuAccount.setId("accountMenu");
+        mnuAccount.setText("My Account");
+        mnuAccount.getItems().add(new MenuItem("App Color Scheme"));
+        mnuAccount.getItems().add(new MenuItem("Notification Settings"));
 
+        Region region = new Region();
+        accButtonBox.getChildren().add(mnuAccount);
+        box.getChildren().add(accButtonBox);
+        region.getStyleClass().add("regionLeftMenu");
+        box.getChildren().add(region);
+
+
+        String[] btnNames = new String[]{"Today", "7-day", "Month", "Completed"};
+        for (String btnName : btnNames) {
+            Button newButton = new Button(btnName);
+            newButton.getStyleClass().add("btnLeftMenu");
+            filterButtonBox.getChildren().add(newButton);
+        }
+
+        Separator btnSeparator = new Separator();
+        btnSeparator.setId("btnSeparator");
+        filterButtonBox.getChildren().add(btnSeparator);
+
+        btnNames = new String[]{"Work", "School", "Home", "Other"};
+        for (String btnName : btnNames) {
+            Button newButton = new Button(btnName);
+            newButton.getStyleClass().add("btnLeftMenu");
+            filterButtonBox.getChildren().add(newButton);
+        }
+
+        box.getChildren().add(filterButtonBox);
         return box;
     }
 
@@ -122,222 +145,114 @@ public class App extends Application {
         taskDescriptionArea.clear();
         taskDueDatePicker.setValue(null);
 
-        refreshTaskList();
+
     }
 
     // -------------------- CENTER: Task List & View Toggle --------------------
 
     private VBox createTaskListPane() {
-        VBox box = new VBox(10);
-        box.setPadding(new Insets(10));
+        VBox topBar = new VBox();
+        topBar.getStylesheets().addAll(this.getClass().getResource("/com/example/style.css").toExternalForm());
+        topBar.setId("topBar");
+        AnchorPane topPane = new AnchorPane();
+        topPane.setId("topPane");
+        topBar.getChildren().add(topPane);
+        Search search = new Search();
+        HBox hBox = new HBox(search.createSearch());
+        hBox.setAlignment(Pos.CENTER);
+        topPane.getChildren().add(hBox);
 
-        Label header = new Label("Tasks");
-        header.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-
-        // View toggle: Day / Week / Month / All
-        HBox viewToggleBox = new HBox(10);
-        viewToggleBox.setAlignment(Pos.CENTER_LEFT);
-
-        viewToggleGroup = new ToggleGroup();
-
-        RadioButton dayView = new RadioButton("Day");
-        dayView.setToggleGroup(viewToggleGroup);
-
-        RadioButton weekView = new RadioButton("Week");
-        weekView.setToggleGroup(viewToggleGroup);
-
-        RadioButton monthView = new RadioButton("Month");
-        monthView.setToggleGroup(viewToggleGroup);
-
-        RadioButton allView = new RadioButton("All");
-        allView.setToggleGroup(viewToggleGroup);
-        allView.setSelected(true);
-
-        viewToggleGroup.selectedToggleProperty().addListener((obs, old, newVal) -> refreshTaskList());
-
-        viewToggleBox.getChildren().addAll(new Label("View:"), dayView, weekView, monthView, allView);
-
-        taskListView = new ListView<>();
-        taskListView.setPrefWidth(400);
-        taskListView.setCellFactory(listView -> new ListCell<>() {
-            @Override
-            protected void updateItem(Task task, boolean empty) {
-                super.updateItem(task, empty);
-                if (empty || task == null) {
-                    setText(null);
-                } else {
-                    String due = task.getDueDate() != null ? task.getDueDate().toString() : "No date";
-                    int percent = (int) Math.round(task.getCompletionRate() * 100);
-                    setText(task.getTitle() + " (Due: " + due + ") - " + percent + "% complete");
-                }
-            }
-        });
-
-        taskListView.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
-            updateTaskDetails(sel);
-        });
-
-        box.getChildren().addAll(header, viewToggleBox, taskListView);
-
-        return box;
-    }
-
-    private void refreshTaskList() {
-    LocalDate today = LocalDate.now();
-
-    Toggle selectedToggle = viewToggleGroup.getSelectedToggle();
-    String mode = "All";
-    if (selectedToggle != null) {
-        mode = ((RadioButton) selectedToggle).getText();
-    }
-
-    LocalDate weekLimit = today.plusDays(7);
-    LocalDate monthLimit = today.plusDays(30);
-
-    ObservableList<Task> filtered = FXCollections.observableArrayList();
-
-    for (Task task : allTasks) {
-        LocalDate due = task.getDueDate();
-
-        // If no due date, always include
-        if (due == null) {
-            filtered.add(task);
-            continue;
-        }
-
-        boolean include = true;
-
-        if ("Day".equals(mode)) {
-            include = due.isEqual(today);
-        } else if ("Week".equals(mode)) {
-            include = !due.isBefore(today) && !due.isAfter(weekLimit);
-        } else if ("Month".equals(mode)) {
-            include = !due.isBefore(today) && !due.isAfter(monthLimit);
-        } else {
-            // "All" view
-            include = true;
-        }
-
-        if (include) {
-            filtered.add(task);
-        }
-    }
-
-    // sort by due date (nulls last)
-    FXCollections.sort(filtered,
-            Comparator.comparing(Task::getDueDate,
-                    Comparator.nullsLast(Comparator.naturalOrder())));
-
-    taskListView.setItems(filtered);
-
-    // keep details panel sane
-    Task selected = taskListView.getSelectionModel().getSelectedItem();
-    if (selected == null || !filtered.contains(selected)) {
-        taskListView.getSelectionModel().clearSelection();
-        updateTaskDetails(null);
-    }
-}
+        topPane.setTopAnchor(hBox, 10.0);
+        topPane.setLeftAnchor(hBox, 10.0);
+        topPane.setRightAnchor(hBox, 10.0);
+        topPane.setBottomAnchor(hBox, 10.0);
 
 
-    // -------------------- RIGHT: Task Details + Subtasks --------------------
+        GridPane splitView = new GridPane();
+        splitView.setId("splitView");
 
-    private VBox createTaskDetailsPane() {
-        VBox box = new VBox(10);
-        box.setPadding(new Insets(10));
-        box.setPrefWidth(350);
-        box.setStyle("-fx-background-color: #f9f9f9;");
+        ColumnConstraints column1 = new ColumnConstraints();
+        column1.setHgrow(Priority.ALWAYS);
+        ColumnConstraints column2 = new ColumnConstraints();
+        column2.setHgrow(Priority.ALWAYS);
+        column2.setPercentWidth(5);
+        ColumnConstraints column3 = new ColumnConstraints();
+        column3.setHgrow(Priority.ALWAYS);
 
-        Label header = new Label("Task Details");
-        header.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        RowConstraints rowConstraints = new RowConstraints();
+        rowConstraints.setVgrow(Priority.ALWAYS);
 
-        Label descLabel = new Label("Subtasks:");
-        subTaskListView = new ListView<>();
-        subTaskListView.setCellFactory(listView ->
-                new CheckBoxListCell<>(SubTask::completedProperty) {
-                    @Override
-                    public void updateItem(SubTask item, boolean empty) {
-                        super.updateItem(item, empty);
-                        if (empty || item == null) {
-                            setText(null);
-                        } else {
-                            setText(item.getName());
-                        }
-                    }
-                }
-        );
+        splitView.getColumnConstraints().addAll(column1, column2, column3);
+        splitView.setAlignment(Pos.CENTER);
+        splitView.getRowConstraints().addAll(rowConstraints);
 
-        // Whenever a subtask completion changes, refresh progress display
-        subTaskListView.itemsProperty().addListener((obs, old, val) -> {
-            if (val != null) {
-                val.forEach(sub ->
-                        sub.completedProperty().addListener((o, ov, nv) -> updateTaskDetails(taskListView.getSelectionModel().getSelectedItem()))
-                );
-            }
-        });
+        Separator separator = new Separator();
+        separator.setId("separator");
+        separator.setOrientation(Orientation.VERTICAL);
 
-        HBox addSubTaskBox = new HBox(5);
-        subTaskField = new TextField();
-        subTaskField.setPromptText("New subtask name");
-        Button addSubTaskButton = new Button("Add");
-        addSubTaskButton.setOnAction(e -> handleAddSubTask());
-        addSubTaskBox.getChildren().addAll(subTaskField, addSubTaskButton);
+        BorderPane leftPane = new BorderPane();
+        StackPane leftStack = new StackPane();
+        leftStack.setId("leftStack");
+        leftPane.setCenter(leftStack);
 
-        Label progressTextLabel = new Label("Completion:");
-        progressBar = new ProgressBar(0);
-        progressBar.setPrefWidth(250);
+        BorderPane rightPane = new BorderPane();
+        StackPane rightStack = new StackPane();
+        rightStack.setId("rightStack");
+        rightPane.setCenter(rightStack);
 
-        progressLabel = new Label("0%");
 
-        VBox progressBox = new VBox(5, progressTextLabel, progressBar, progressLabel);
+        splitView.add(leftPane, 0, 0);
+        splitView.add(separator, 1, 0);
+        splitView.add(rightPane, 2, 0);
 
-        box.getChildren().addAll(header, descLabel, subTaskListView, addSubTaskBox, progressBox);
-        VBox.setVgrow(subTaskListView, Priority.ALWAYS);
+        leftPane.setTop(new Region());
+        leftPane.getTop().getStyleClass().add("region");
+        leftPane.setRight(new Region());
+        leftPane.getRight().getStyleClass().add("region");
+        leftPane.setLeft(new Region());
+        leftPane.getLeft().getStyleClass().add("region");
+        leftPane.setBottom(new Region());
+        leftPane.getBottom().getStyleClass().add("region");
 
-        return box;
-    }
+        rightPane.setTop(new Region());
+        rightPane.getTop().getStyleClass().add("region");
+        rightPane.setRight(new Region());
+        rightPane.getRight().getStyleClass().add("region");
+        rightPane.setLeft(new Region());
+        rightPane.getLeft().getStyleClass().add("region");
+        rightPane.setBottom(new Region());
+        rightPane.getBottom().getStyleClass().add("region");
 
-    private void handleAddSubTask() {
-        Task selectedTask = taskListView.getSelectionModel().getSelectedItem();
-        if (selectedTask == null) {
-            showAlert(Alert.AlertType.WARNING, "No task selected", "Please select a task first.");
-            return;
-        }
+        topBar.getChildren().add(splitView);
 
-        String name = subTaskField.getText().trim();
-        if (name.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "No subtask name", "Please enter a subtask name.");
-            return;
-        }
+        GridPane.setHalignment(separator, HPos.CENTER);
+        GridPane.setValignment(separator, VPos.CENTER);
+        VBox.setVgrow(splitView, Priority.ALWAYS);
+        ScrollPane leftScrollPane = new ScrollPane();
+        leftScrollPane.setId("leftScrollPane");
+        leftScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        leftStack.getChildren().add(leftScrollPane);
+        leftStack.setMinSize(400, 350);
+        leftStack.setPrefSize(400, 350);
+        leftStack.setMaxSize(600, 1100);
 
-        SubTask subTask = new SubTask(name);
-        selectedTask.getSubTasks().add(subTask);
+        VBox rightVBox = new VBox();
+        rightVBox.setId("rightVBox");
+        rightVBox.setAlignment(Pos.TOP_CENTER);
 
-        // Re-bind listeners for completion changes
-        subTask.completedProperty().addListener((o, ov, nv) -> updateTaskDetails(selectedTask));
+        leftStack.setPadding(new Insets(50, 10, 10, 10));
+        Calendar calendar = new Calendar();
+        rightVBox.getChildren().add(calendar.createCalendar());
+        rightStack.getChildren().add(rightVBox);
+        rightStack.setMinSize(400, 350);
+        rightStack.setPrefSize(400, 350);
+        rightStack.setMaxSize(600, 1100);
+        rightStack.setPadding(new Insets(30, 20,0,20));
 
-        subTaskField.clear();
-        updateTaskDetails(selectedTask);
-        refreshTaskList();
-    }
 
-    private void updateTaskDetails(Task task) {
-        if (task == null) {
-            subTaskListView.setItems(FXCollections.observableArrayList());
-            progressBar.setProgress(0);
-            progressLabel.setText("0%");
-            return;
-        }
 
-        subTaskListView.setItems(task.getSubTasks());
 
-        // Update progress
-        double progress = task.getCompletionRate();
-        progressBar.setProgress(progress);
-        int percent = (int) Math.round(progress * 100);
-        progressLabel.setText(percent + "%");
-
-        // Refresh the main task list view text for updated percentage
-        taskListView.refresh();
+        return topBar;
     }
 
     // -------------------- UTILITY --------------------
