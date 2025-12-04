@@ -3,6 +3,7 @@ package com.example;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.geometry.*;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -13,18 +14,23 @@ import javafx.stage.Stage;
 
 import java.net.URL;
 import java.time.LocalDate;
-import java.util.Comparator;
+import java.util.function.Predicate;
 
 public class App extends Application {
 
+    // ---------- DATA ----------
     private final ObservableList<Task> allTasks = FXCollections.observableArrayList();
+    private final FilteredList<Task> filteredTasks =
+            new FilteredList<>(allTasks, t -> true);   // wraps allTasks
 
+    // ---------- UI FIELDS ----------
     private ListView<Task> taskListView;
     private ListView<SubTask> subTaskListView;
 
     private TextField taskTitleField;
     private TextArea taskDescriptionArea;
     private DatePicker taskDueDatePicker;
+    private ComboBox<String> categoryCombo;
 
     private TextField subTaskField;
 
@@ -33,10 +39,18 @@ public class App extends Application {
 
     private ToggleGroup viewToggleGroup;
 
-
+    // filters we combine: date + category
+    private Predicate<Task> dateFilter = t -> true;
+    private Predicate<Task> categoryFilter = t -> true;
 
     public static void main(String[] args) {
         launch(args);
+    }
+
+    // apply both filters together
+    private void updateFilters() {
+        filteredTasks.setPredicate(task ->
+                dateFilter.test(task) && categoryFilter.test(task));
     }
 
     @Override
@@ -45,84 +59,156 @@ public class App extends Application {
 
         BorderPane root = new BorderPane();
 
-        // --- Left: Add Task Form ---
         VBox leftPane = createAddTaskPane();
-
-        // --- Center: Task List + Filter ---
         VBox centerPane = createTaskListPane();
-
-        // --- Right: Task Details / Subtasks ---
 
         root.setLeft(leftPane);
         root.setCenter(centerPane);
-
 
         Scene scene = new Scene(root, 1400, 900);
         primaryStage.setScene(scene);
         primaryStage.show();
     }
 
-    // -------------------- LEFT: Add Task --------------------
+    // -------------------- LEFT: Add Task + Filters --------------------
 
     private VBox createAddTaskPane() {
         VBox box = new VBox();
         box.setPadding(new Insets(15));
         box.setId("pane");
         box.setFillWidth(true);
-        box.getStylesheets().addAll(this.getClass().getResource("/com/example/style.css").toExternalForm());
+        box.getStylesheets().addAll(
+                this.getClass().getResource("/com/example/style.css").toExternalForm()
+        );
         box.setAlignment(Pos.TOP_CENTER);
+        box.setPrefWidth(280);
+        box.setMinWidth(280);
+        box.setMaxWidth(280);
 
+        // --- Account button + menu ---
         HBox accButtonBox = new HBox();
         accButtonBox.setSpacing(10);
         accButtonBox.setAlignment(Pos.CENTER_LEFT);
 
         Button accountButton = new Button();
         accountButton.setId("accountButton");
-            URL userIcon = this.getClass().getResource("/com/example/icons/user.png");
-            ImageView userImage = new ImageView(new Image(userIcon.toExternalForm()));
-            userImage.setFitWidth(30);
-            userImage.setPreserveRatio(true);
-            accountButton.setGraphic(userImage);
-
-
+        URL userIcon = this.getClass().getResource("/com/example/icons/user.png");
+        ImageView userImage = new ImageView(new Image(userIcon.toExternalForm()));
+        userImage.setFitWidth(30);
+        userImage.setPreserveRatio(true);
+        accountButton.setGraphic(userImage);
 
         accButtonBox.getChildren().add(accountButton);
 
-        VBox filterButtonBox = new VBox(13);
-        filterButtonBox.setAlignment(Pos.CENTER);
         MenuButton mnuAccount = new MenuButton();
         mnuAccount.setId("accountMenu");
         mnuAccount.setText("My Account");
         mnuAccount.getItems().add(new MenuItem("App Color Scheme"));
         mnuAccount.getItems().add(new MenuItem("Notification Settings"));
 
-        Region region = new Region();
         accButtonBox.getChildren().add(mnuAccount);
         box.getChildren().add(accButtonBox);
+
+        Region region = new Region();
         region.getStyleClass().add("regionLeftMenu");
         box.getChildren().add(region);
 
+        // ---- FILTER BUTTONS (date + category) ----
+        VBox filterButtonBox = new VBox(13);
+        filterButtonBox.setAlignment(Pos.CENTER);
 
-        String[] btnNames = new String[]{"Today", "7-day", "Month", "Completed"};
-        for (String btnName : btnNames) {
-            Button newButton = new Button(btnName);
-            newButton.getStyleClass().add("btnLeftMenu");
-            filterButtonBox.getChildren().add(newButton);
-        }
+        // Date filters
+        Button todayButton = new Button("Today");
+        todayButton.getStyleClass().add("btnLeftMenu");
+        todayButton.setOnAction(e -> {
+            LocalDate today = LocalDate.now();
+            dateFilter = task -> today.equals(task.getDueDate());
+            updateFilters();
+        });
+
+        Button sevenButton = new Button("7-day");
+        sevenButton.getStyleClass().add("btnLeftMenu");
+        sevenButton.setOnAction(e -> showNextSevenDaysTasks());
+
+        Button monthButton = new Button("Month");
+        monthButton.getStyleClass().add("btnLeftMenu");
+        // TODO: add month filter (set dateFilter then updateFilters)
+
+        Button completedButton = new Button("Completed");
+        completedButton.getStyleClass().add("btnLeftMenu");
+        // TODO: add completed filter (once tasks have a "completed" flag)
+
+        filterButtonBox.getChildren().addAll(todayButton, sevenButton, monthButton, completedButton);
 
         Separator btnSeparator = new Separator();
         btnSeparator.setId("btnSeparator");
         filterButtonBox.getChildren().add(btnSeparator);
 
-        btnNames = new String[]{"Work", "School", "Home", "Other"};
+        // Category filters
+        String[] btnNames = new String[]{"Work", "School", "Home", "Other"};
         for (String btnName : btnNames) {
             Button newButton = new Button(btnName);
             newButton.getStyleClass().add("btnLeftMenu");
+
+            newButton.setOnAction(e -> {
+                // set categoryFilter based on which button was clicked
+                categoryFilter = task -> btnName.equalsIgnoreCase(task.getCategory());
+                updateFilters();
+            });
+
             filterButtonBox.getChildren().add(newButton);
         }
 
         box.getChildren().add(filterButtonBox);
+
+        // ---------------- Add Task Form ----------------
+        Label lblTitle = new Label("Task Title:");
+        taskTitleField = new TextField();
+        taskTitleField.setPromptText("Enter task title");
+
+        Label lblDesc = new Label("Description:");
+        taskDescriptionArea = new TextArea();
+        taskDescriptionArea.setPromptText("Optional description...");
+        taskDescriptionArea.setPrefRowCount(3);
+
+        Label lblDue = new Label("Due Date:");
+        taskDueDatePicker = new DatePicker();
+
+        Label lblCategory = new Label("Category:");
+        categoryCombo = new ComboBox<>();
+        categoryCombo.getItems().addAll("Work", "School", "Home", "Other");
+        categoryCombo.setValue("Other");   // default
+
+        Button btnAddTask = new Button("Add Task");
+        btnAddTask.setId("addTaskButton");
+        btnAddTask.setOnAction(e -> handleAddTask());
+
+        VBox addTaskBox = new VBox(
+                8,
+                new Separator(),
+                lblTitle, taskTitleField,
+                lblDesc, taskDescriptionArea,
+                lblDue, taskDueDatePicker,
+                lblCategory, categoryCombo,
+                btnAddTask
+        );
+        addTaskBox.setPadding(new Insets(15, 0, 0, 0));
+
+        box.getChildren().add(addTaskBox);
         return box;
+    }
+
+    private void showNextSevenDaysTasks() {
+        LocalDate today = LocalDate.now();
+        LocalDate week = today.plusDays(7);
+
+        dateFilter = task -> {
+            LocalDate due = task.getDueDate();
+            if (due == null) return false;
+            return !due.isBefore(today) && !due.isAfter(week);
+        };
+
+        updateFilters();
     }
 
     private void handleAddTask() {
@@ -137,36 +223,47 @@ public class App extends Application {
             return;
         }
 
-        Task task = new Task(title, description, dueDate);
+        String category = (categoryCombo != null) ? categoryCombo.getValue() : null;
+        if (category == null || category.isEmpty()) {
+            category = "Other";
+        }
+
+        Task task = new Task(title, description, dueDate, category);
+
+        // add to backing list (ListView updates via filteredTasks)
         allTasks.add(task);
 
-        // Clear fields
+        // clear form
         taskTitleField.clear();
         taskDescriptionArea.clear();
         taskDueDatePicker.setValue(null);
-
-
+        if (categoryCombo != null) {
+            categoryCombo.setValue("Other");
+        }
     }
 
-    // -------------------- CENTER: Task List & View Toggle --------------------
+    // -------------------- CENTER: Task List & Calendar --------------------
 
     private VBox createTaskListPane() {
         VBox topBar = new VBox();
-        topBar.getStylesheets().addAll(this.getClass().getResource("/com/example/style.css").toExternalForm());
+        topBar.getStylesheets().addAll(
+                this.getClass().getResource("/com/example/style.css").toExternalForm()
+        );
         topBar.setId("topBar");
+
         AnchorPane topPane = new AnchorPane();
         topPane.setId("topPane");
         topBar.getChildren().add(topPane);
+
         Search search = new Search();
         HBox hBox = new HBox(search.createSearch());
         hBox.setAlignment(Pos.CENTER);
         topPane.getChildren().add(hBox);
 
-        topPane.setTopAnchor(hBox, 10.0);
-        topPane.setLeftAnchor(hBox, 10.0);
-        topPane.setRightAnchor(hBox, 10.0);
-        topPane.setBottomAnchor(hBox, 10.0);
-
+        AnchorPane.setTopAnchor(hBox, 10.0);
+        AnchorPane.setLeftAnchor(hBox, 10.0);
+        AnchorPane.setRightAnchor(hBox, 10.0);
+        AnchorPane.setBottomAnchor(hBox, 10.0);
 
         GridPane splitView = new GridPane();
         splitView.setId("splitView");
@@ -184,22 +281,40 @@ public class App extends Application {
 
         splitView.getColumnConstraints().addAll(column1, column2, column3);
         splitView.setAlignment(Pos.CENTER);
-        splitView.getRowConstraints().addAll(rowConstraints);
+        splitView.getRowConstraints().add(rowConstraints);
 
         Separator separator = new Separator();
         separator.setId("separator");
         separator.setOrientation(Orientation.VERTICAL);
 
+        // LEFT: task list area
         BorderPane leftPane = new BorderPane();
         StackPane leftStack = new StackPane();
         leftStack.setId("leftStack");
         leftPane.setCenter(leftStack);
 
+        taskListView = new ListView<>();
+        taskListView.setItems(filteredTasks);
+        taskListView.setPrefHeight(Double.MAX_VALUE);
+
+        ScrollPane leftScrollPane = new ScrollPane();
+        leftScrollPane.setContent(taskListView);
+        leftScrollPane.setFitToWidth(true);
+        leftScrollPane.setFitToHeight(true);
+        leftScrollPane.setId("leftScrollPane");
+        leftScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+
+        leftStack.getChildren().add(leftScrollPane);
+        leftStack.setMinSize(400, 350);
+        leftStack.setPrefSize(400, 350);
+        leftStack.setMaxSize(600, 1100);
+        leftStack.setPadding(new Insets(50, 10, 10, 10));
+
+        // RIGHT: calendar area
         BorderPane rightPane = new BorderPane();
         StackPane rightStack = new StackPane();
         rightStack.setId("rightStack");
         rightPane.setCenter(rightStack);
-
 
         splitView.add(leftPane, 0, 0);
         splitView.add(separator, 1, 0);
@@ -223,34 +338,23 @@ public class App extends Application {
         rightPane.setBottom(new Region());
         rightPane.getBottom().getStyleClass().add("region");
 
-        topBar.getChildren().add(splitView);
-
-        GridPane.setHalignment(separator, HPos.CENTER);
-        GridPane.setValignment(separator, VPos.CENTER);
-        VBox.setVgrow(splitView, Priority.ALWAYS);
-        ScrollPane leftScrollPane = new ScrollPane();
-        leftScrollPane.setId("leftScrollPane");
-        leftScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        leftStack.getChildren().add(leftScrollPane);
-        leftStack.setMinSize(400, 350);
-        leftStack.setPrefSize(400, 350);
-        leftStack.setMaxSize(600, 1100);
-
         VBox rightVBox = new VBox();
         rightVBox.setId("rightVBox");
         rightVBox.setAlignment(Pos.TOP_CENTER);
 
-        leftStack.setPadding(new Insets(50, 10, 10, 10));
         Calendar calendar = new Calendar();
         rightVBox.getChildren().add(calendar.createCalendar());
         rightStack.getChildren().add(rightVBox);
         rightStack.setMinSize(400, 350);
         rightStack.setPrefSize(400, 350);
         rightStack.setMaxSize(600, 1100);
-        rightStack.setPadding(new Insets(30, 20,0,20));
+        rightStack.setPadding(new Insets(30, 20, 0, 20));
 
+        topBar.getChildren().add(splitView);
 
-
+        GridPane.setHalignment(separator, HPos.CENTER);
+        GridPane.setValignment(separator, VPos.CENTER);
+        VBox.setVgrow(splitView, Priority.ALWAYS);
 
         return topBar;
     }
