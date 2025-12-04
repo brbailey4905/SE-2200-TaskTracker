@@ -34,6 +34,9 @@ public class App extends Application {
 
     private TextField subTaskField;
 
+    private ComboBox<String> sortMenu;
+    private ComboBox<String> filterMenu;
+
     private ProgressBar progressBar;
     private Label progressLabel;
 
@@ -297,18 +300,60 @@ public class App extends Application {
         taskListView.setItems(filteredTasks);
         taskListView.setPrefHeight(Double.MAX_VALUE);
 
+        VBox leftPaneContainer = new VBox(10);
+        leftPaneContainer.setId("leftButtonContainer");
+        leftPaneContainer.setAlignment(Pos.TOP_CENTER);
+
+        Button taskCreationButton = new Button();
+        taskCreationButton.getStyleClass().add("leftPaneButtons");
+        taskCreationButton.setText("Add Task +");
+
+        // Add Task, Edit, Sort, Filter left pane button box
+        HBox buttonContainer = new HBox();
+        buttonContainer.setId("buttonContainer");
+        buttonContainer.setAlignment(Pos.TOP_CENTER);
+        buttonContainer.spacingProperty().bind(
+                leftStack.widthProperty().multiply(0.05)
+        );
+
+        Button editTask = new Button();
+        editTask.getStyleClass().add("leftPaneButtons");
+        editTask.setText("Edit");
+
+        sortMenu = new ComboBox<>();
+        sortMenu.getStyleClass().addAll("leftPaneButtons", "comboBox");
+        sortMenu.getItems().addAll("Priority: High to Low","Priority: Low to High", "Due Date",
+                "Task Name: A to Z","Task Name: Z to A");
+        sortMenu.setValue("Sort");
+
+
+        filterMenu = new ComboBox<>();
+        filterMenu.getStyleClass().addAll("leftPaneButtons", "comboBox");
+        categoryCombo.getItems().addAll("Work", "School", "Home", "Other");
+        filterMenu.getItems().addAll("High Priority", "Mid Priority", "Low Priority", "Work List", "School List",
+                "Home List", "Other List", "Due Today", "Due This Week", "Due This Month", "Completed Tasks");
+        filterMenu.setValue("Filter");
+
+
+        buttonContainer.getChildren().addAll(taskCreationButton, editTask,  sortMenu, filterMenu);
+
         ScrollPane leftScrollPane = new ScrollPane();
         leftScrollPane.setContent(taskListView);
         leftScrollPane.setFitToWidth(true);
         leftScrollPane.setFitToHeight(true);
         leftScrollPane.setId("leftScrollPane");
         leftScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        leftScrollPane.setMinSize(300, 500);
+        leftScrollPane.setMaxSize(575, 1050);
 
-        leftStack.getChildren().add(leftScrollPane);
+        leftPaneContainer.getChildren().addAll(buttonContainer, leftScrollPane);
+        leftStack.getChildren().add(leftPaneContainer);
+
         leftStack.setMinSize(400, 350);
         leftStack.setPrefSize(400, 350);
         leftStack.setMaxSize(600, 1100);
-        leftStack.setPadding(new Insets(50, 10, 10, 10));
+        leftStack.setPadding(new Insets(10, 10, 10, 10));
+
 
         // RIGHT: calendar area
         BorderPane rightPane = new BorderPane();
@@ -328,6 +373,7 @@ public class App extends Application {
         leftPane.getLeft().getStyleClass().add("region");
         leftPane.setBottom(new Region());
         leftPane.getBottom().getStyleClass().add("region");
+
 
         rightPane.setTop(new Region());
         rightPane.getTop().getStyleClass().add("region");
@@ -358,6 +404,10 @@ public class App extends Application {
 
         return topBar;
     }
+
+    // -------------------- POPUP: Add New Task --------------------
+
+
 
     // -------------------- UTILITY --------------------
 

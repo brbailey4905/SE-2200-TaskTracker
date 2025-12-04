@@ -95,3 +95,19 @@
     -fx-effect: dropshadow(three-pass-box, #000000, 1, 2, 0, 4);
     -fx-background-insets: 0;
 }
+
+.leftPaneButtons {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 20;
+    -fx-border-color: #000000;
+    -fx-border-radius: 20;
+    -fx-background-insets: 0;
+    -fx-effect: dropshadow(gaussian, #000000, 1, 2, 1, 1);
+    -fx-alignment: center center;
+    -fx-pref-width: 100;
+    -fx-pref-height: 7;
+    -fx-spacing: 10;
+    -fx-font-size: 12px;
+}
+
+
