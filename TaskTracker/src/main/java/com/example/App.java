@@ -5,12 +5,16 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.geometry.*;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.effect.ColorAdjust;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 import java.net.URL;
 import java.time.LocalDate;
@@ -36,6 +40,8 @@ public class App extends Application {
 
     private ComboBox<String> sortMenu;
     private ComboBox<String> filterMenu;
+    private Button taskCreationButton;
+    private Button confirmTaskCreationButton;
 
     private ProgressBar progressBar;
     private Label progressLabel;
@@ -62,8 +68,8 @@ public class App extends Application {
 
         BorderPane root = new BorderPane();
 
-        VBox leftPane = createAddTaskPane();
-        VBox centerPane = createTaskListPane();
+        VBox leftPane = createFilterPane();
+        VBox centerPane = createTaskListPane(root, primaryStage);
 
         root.setLeft(leftPane);
         root.setCenter(centerPane);
@@ -73,9 +79,9 @@ public class App extends Application {
         primaryStage.show();
     }
 
-    // -------------------- LEFT: Add Task + Filters --------------------
+    // -------------------- LEFT: Filters --------------------
 
-    private VBox createAddTaskPane() {
+    private VBox createFilterPane() {
         VBox box = new VBox();
         box.setPadding(new Insets(15));
         box.setId("pane");
@@ -163,7 +169,12 @@ public class App extends Application {
         }
 
         box.getChildren().add(filterButtonBox);
+        return box;
+    }
 
+    // -------------------- POPUP: Add New Task --------------------
+    private VBox addTaskPopup() {
+        VBox box = new VBox(10);
         // ---------------- Add Task Form ----------------
         Label lblTitle = new Label("Task Title:");
         taskTitleField = new TextField();
@@ -182,9 +193,9 @@ public class App extends Application {
         categoryCombo.getItems().addAll("Work", "School", "Home", "Other");
         categoryCombo.setValue("Other");   // default
 
-        Button btnAddTask = new Button("Add Task");
-        btnAddTask.setId("addTaskButton");
-        btnAddTask.setOnAction(e -> handleAddTask());
+        confirmTaskCreationButton = new Button("Add Task");
+        confirmTaskCreationButton.setId("addTaskButton");
+        confirmTaskCreationButton.setOnAction(e -> handleAddTask());
 
         VBox addTaskBox = new VBox(
                 8,
@@ -193,13 +204,19 @@ public class App extends Application {
                 lblDesc, taskDescriptionArea,
                 lblDue, taskDueDatePicker,
                 lblCategory, categoryCombo,
-                btnAddTask
+                confirmTaskCreationButton
         );
         addTaskBox.setPadding(new Insets(15, 0, 0, 0));
 
         box.getChildren().add(addTaskBox);
+
         return box;
+
+        // TODO: Style this window
     }
+
+
+
 
     private void showNextSevenDaysTasks() {
         LocalDate today = LocalDate.now();
@@ -243,11 +260,13 @@ public class App extends Application {
         if (categoryCombo != null) {
             categoryCombo.setValue("Other");
         }
+        // TODO: Save tasks to file
     }
+
 
     // -------------------- CENTER: Task List & Calendar --------------------
 
-    private VBox createTaskListPane() {
+    private VBox createTaskListPane(Parent root, Stage primaryStage) {
         VBox topBar = new VBox();
         topBar.getStylesheets().addAll(
                 this.getClass().getResource("/com/example/style.css").toExternalForm()
@@ -304,9 +323,10 @@ public class App extends Application {
         leftPaneContainer.setId("leftButtonContainer");
         leftPaneContainer.setAlignment(Pos.TOP_CENTER);
 
-        Button taskCreationButton = new Button();
+        taskCreationButton = new Button();
         taskCreationButton.getStyleClass().add("leftPaneButtons");
         taskCreationButton.setText("Add Task +");
+
 
         // Add Task, Edit, Sort, Filter left pane button box
         HBox buttonContainer = new HBox();
@@ -329,13 +349,17 @@ public class App extends Application {
 
         filterMenu = new ComboBox<>();
         filterMenu.getStyleClass().addAll("leftPaneButtons", "comboBox");
-        categoryCombo.getItems().addAll("Work", "School", "Home", "Other");
         filterMenu.getItems().addAll("High Priority", "Mid Priority", "Low Priority", "Work List", "School List",
                 "Home List", "Other List", "Due Today", "Due This Week", "Due This Month", "Completed Tasks");
         filterMenu.setValue("Filter");
 
-
         buttonContainer.getChildren().addAll(taskCreationButton, editTask,  sortMenu, filterMenu);
+
+        Parent newWindow = addTaskPopup();
+
+        taskCreationButton.setOnMouseClicked(event ->
+                handlePopup(primaryStage, root, newWindow, confirmTaskCreationButton));
+
 
         ScrollPane leftScrollPane = new ScrollPane();
         leftScrollPane.setContent(taskListView);
@@ -405,10 +429,6 @@ public class App extends Application {
         return topBar;
     }
 
-    // -------------------- POPUP: Add New Task --------------------
-
-
-
     // -------------------- UTILITY --------------------
 
     private void showAlert(Alert.AlertType type, String title, String msg) {
@@ -417,5 +437,37 @@ public class App extends Application {
         alert.setHeaderText(null);
         alert.setContentText(msg);
         alert.showAndWait();
+
+        // FIXME: might have to change this to a popup?
+        // If the user is in full screen and they get an alert, it sends the alert to a new full screen window
     }
+
+    // Create a popup window
+    private void handlePopup(Stage mainStage, Parent root, Parent newWindow, Button button) {
+        Stage addStage = new Stage();
+        Scene addScene = new Scene(newWindow);
+        addStage.setScene(addScene);
+        addStage.setResizable(false);
+        addStage.initOwner(mainStage);
+        root.setDisable(true);
+        ColorAdjust colorAdjust = new ColorAdjust();
+        colorAdjust.setBrightness(-.5);
+        root.setEffect(colorAdjust);
+        addStage.initStyle(StageStyle.UNDECORATED);
+        closePopUp(button, addStage, root);
+        addStage.showAndWait();
+        // TODO : Add new styled exit button
+
+    }
+
+    // close a popup window
+    public static void closePopUp(Button button, Stage addStage, Parent root) {
+        button.setOnMouseClicked(e -> {
+            addStage.close();
+            root.setDisable(false);
+            root.setEffect(null);
+        });
+        // TODO: Refresh main page on popup close so buttons work again
+    }
+
 }
