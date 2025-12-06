@@ -110,4 +110,10 @@
     -fx-font-size: 12px;
 }
 
+#exitButton {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 2;
+}
+
 
