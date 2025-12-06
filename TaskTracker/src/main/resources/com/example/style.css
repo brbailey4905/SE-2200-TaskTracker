@@ -116,4 +116,12 @@
     -fx-padding: 2;
 }
 
+#anchorpane {
+    -fx-background-color: #000000;
+}
+
+#addTaskBox {
+    -fx-background-color: #FFFFFF;
+}
+
 

@@ -29,6 +29,7 @@ public class App extends Application {
 
     // ---------- UI FIELDS ----------
     private BorderPane root;
+    private Stage addStage;
 
     private ListView<Task> taskListView;
     private ListView<SubTask> subTaskListView;
@@ -44,6 +45,7 @@ public class App extends Application {
 
     private ComboBox<String> sortMenu;
     private ComboBox<String> filterMenu;
+    private Button confirmTaskCreationButton;
 
     private ProgressBar progressBar;
     private Label progressLabel;
@@ -222,9 +224,9 @@ public class App extends Application {
         categoryCombo.getItems().addAll("Work", "School", "Home", "Other");
         categoryCombo.setValue("Other");   // default
 
-        Button addTaskButton = new Button("Add Task");
-        addTaskButton.setId("addTaskButton");
-        addTaskButton.setOnAction(e -> handleAddTask());
+        confirmTaskCreationButton = new Button("Add Task");
+        confirmTaskCreationButton.setId("addTaskButton");
+        confirmTaskCreationButton.setOnAction(e -> handleAddTask());
 
 
         VBox addTaskBox = new VBox(
@@ -234,7 +236,7 @@ public class App extends Application {
                 lblDesc, taskDescriptionArea,
                 lblDue, taskDueDatePicker,
                 lblCategory, categoryCombo,
-                addTaskButton
+                confirmTaskCreationButton
         );
         addTaskBox.setPadding(new Insets(15, 0, 0, 0));
 
@@ -282,6 +284,7 @@ public class App extends Application {
 
         // add to backing list (ListView updates via filteredTasks)
         allTasks.add(task);
+        closePopUp(addStage);
 
         // clear form
         taskTitleField.clear();
@@ -353,9 +356,9 @@ public class App extends Application {
         leftPaneContainer.setId("leftButtonContainer");
         leftPaneContainer.setAlignment(Pos.TOP_CENTER);
 
-        Button addTaskButton = new Button();
-        addTaskButton.getStyleClass().add("leftPaneButtons");
-        addTaskButton.setText("Add Task +");
+        Button taskCreationButton = new Button();
+        taskCreationButton.getStyleClass().add("leftPaneButtons");
+        taskCreationButton.setText("Add Task +");
 
 
         // Add Task, Edit, Sort, Filter left pane button box
@@ -383,13 +386,13 @@ public class App extends Application {
                 "Home List", "Other List", "Due Today", "Due This Week", "Due This Month", "Completed Tasks");
         filterMenu.setValue("Filter");
 
-        buttonContainer.getChildren().addAll(addTaskButton, editTask,  sortMenu, filterMenu);
+        buttonContainer.getChildren().addAll(taskCreationButton, editTask,  sortMenu, filterMenu);
 
 
 
-        addTaskButton.setOnMouseClicked(event -> {
+        taskCreationButton.setOnMouseClicked(event -> {
             newWindow = addTaskPopup();
-            handlePopup(primaryStage, addTaskButton);
+            handlePopup(primaryStage);
         });
 
 
@@ -469,14 +472,11 @@ public class App extends Application {
         alert.setHeaderText(null);
         alert.setContentText(msg);
         alert.showAndWait();
-
-        // FIXME: might have to change this to a popup?
-        // If the user is in full screen and they get an alert, it sends the alert to a new full screen window
     }
 
     // Create a popup window
-    private void handlePopup(Stage mainStage, Button addTaskButton) {
-        Stage addStage = new Stage();
+    private void handlePopup(Stage mainStage) {
+        addStage = new Stage();
         Scene addScene = new Scene(newWindow);
         addStage.setScene(addScene);
         addStage.setResizable(false);
@@ -486,19 +486,18 @@ public class App extends Application {
         colorAdjust.setBrightness(-.5);
         root.setEffect(colorAdjust);
         addStage.initStyle(StageStyle.UNDECORATED);
-        closePopUp(exitButton, addStage);
-        closePopUp(addTaskButton, addStage);
+        exitButton.setOnAction(event -> {
+            closePopUp(addStage);
+        });
         addStage.showAndWait();
 
     }
 
     // close a popup window
-    public void closePopUp(Button button, Stage addStage) {
-        button.setOnMouseClicked(e -> {
+    public void closePopUp(Stage addStage) {
             addStage.close();
             root.setDisable(false);
             root.setEffect(null);
-        });
     }
 
 }
