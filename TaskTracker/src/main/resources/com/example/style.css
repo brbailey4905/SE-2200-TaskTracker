@@ -1,6 +1,7 @@
 #pane {
     -fx-background-image: url('defaultBackground.jpg');
-    -fx-background-position: Center;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
 }
 
 #accountButton {
