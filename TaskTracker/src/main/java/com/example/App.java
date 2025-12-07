@@ -12,12 +12,15 @@ import javafx.scene.effect.ColorAdjust;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
 import java.net.URL;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
 public class App extends Application {
@@ -83,7 +86,7 @@ public class App extends Application {
         primaryStage.show();
     }
 
-    // -------------------- LEFT: Filters --------------------
+    // -------------------- LEFT: Filters and Sidebar --------------------
 
     private VBox createFilterPane() {
         VBox box = new VBox();
@@ -180,11 +183,12 @@ public class App extends Application {
     private VBox addTaskPopup() {
 
         VBox box = new VBox();
+        box.setId("addTaskPopup");
         box.getStylesheets().addAll(
                 Objects.requireNonNull(this.getClass().getResource("/com/example/style.css")).toExternalForm()
         );
         box.setAlignment(Pos.TOP_CENTER);
-        box.setPadding(new Insets(1,15,15,15));
+        box.setPadding(new Insets(1,0,0,0));
         AnchorPane anchorPane = new AnchorPane();
         AnchorPane.setTopAnchor(box, 50.0);
         AnchorPane.setLeftAnchor(box, 50.0);
@@ -195,13 +199,12 @@ public class App extends Application {
         assert exitIcon != null;
         ImageView exitWindow = new ImageView(new Image(exitIcon.toExternalForm()));
         exitWindow.setPreserveRatio(false);
-        exitWindow.setFitWidth(7);
-        exitWindow.setFitHeight(7);
+        exitWindow.setFitWidth(10);
+        exitWindow.setFitHeight(10);
         exitButton = new Button();
         exitButton.setId("exitButton");
         AnchorPane.setRightAnchor(exitButton, 1.0);
         AnchorPane.setTopAnchor(exitButton, 1.0);
-        AnchorPane.setBottomAnchor(exitButton, -10.0);
         exitButton.setGraphic(exitWindow);
         anchorPane.getChildren().addAll(exitButton);
         box.getChildren().add(anchorPane);
@@ -228,19 +231,36 @@ public class App extends Application {
         confirmTaskCreationButton.setId("addTaskButton");
         confirmTaskCreationButton.setOnAction(e -> handleAddTask());
 
+        Label lblSubtask = new Label("Subtask:");
+        Button subtaskButton = new Button("+ Subtask");
+        VBox subtaskContainer = new VBox(8, subtaskButton);
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setId("subtaskScrollPane");
+        subtaskContainer.setId("subtaskContainer");
+
+        subtaskButton.setOnAction(e -> {
+            int addSubtask = subtaskContainer.getChildren().indexOf(subtaskButton);
+            subtaskContainer.getChildren().add(addSubtask, new TextField());
+        });
+
 
         VBox addTaskBox = new VBox(
                 8,
-                new Separator(),
                 lblTitle, taskTitleField,
                 lblDesc, taskDescriptionArea,
+                lblSubtask, subtaskContainer,
                 lblDue, taskDueDatePicker,
                 lblCategory, categoryCombo,
                 confirmTaskCreationButton
         );
-        addTaskBox.setPadding(new Insets(15, 0, 0, 0));
+        addTaskBox.setId("addTaskBox");
 
-        box.getChildren().add(addTaskBox);
+        scrollPane.setContent(addTaskBox);
+
+        box.getChildren().add(scrollPane);
 
         return box;
 

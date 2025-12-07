@@ -121,7 +121,7 @@ public class Calendar {
         for (int row = 1; row <= 7; row++) {
             for (int col = 0; col <= 6; col++) {
                 Button btn = new Button();
-                btn.setPrefSize(34, 30);
+                btn.setPrefSize(37, 34);
                 btn.setStyle("-fx-background-color: #f9f9f9;");
 
                 if (row == 1 && col < startingCol) {

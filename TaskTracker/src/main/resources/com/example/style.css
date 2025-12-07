@@ -108,7 +108,11 @@
     -fx-pref-width: 100;
     -fx-pref-height: 7;
     -fx-spacing: 10;
-    -fx-font-size: 12px;
+    -fx-font-size: 10px;
+}
+
+#addTaskPopup{
+    -fx-background-color: #ABBFB1;
 }
 
 #exitButton {
@@ -117,12 +121,14 @@
     -fx-padding: 2;
 }
 
-#anchorpane {
-    -fx-background-color: #000000;
+#subtaskScrollPane {
+    -fx-background-color: #FFFCF3;
+}
+#addTaskBox{
+    -fx-padding: 20;
+    -fx-background-color: #FFFCF3;
 }
 
-#addTaskBox {
-    -fx-background-color: #FFFFFF;
-}
+
 
 
