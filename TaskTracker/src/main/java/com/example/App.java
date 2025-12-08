@@ -12,7 +12,6 @@ import javafx.scene.effect.ColorAdjust;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
@@ -22,6 +21,12 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.io.IOException;
+import java.util.List;
+
 
 public class App extends Application {
 
@@ -54,7 +59,10 @@ public class App extends Application {
     private Label progressLabel;
 
     private ToggleGroup viewToggleGroup;
+    private Stage editStage;
 
+
+    // ----- scenes for home + main -----
     private Stage primaryStage;
     private Scene homeScene;
     private Scene mainScene;
@@ -62,6 +70,10 @@ public class App extends Application {
     // filters we combine: date + category
     private Predicate<Task> dateFilter = t -> true;
     private Predicate<Task> categoryFilter = t -> true;
+
+    // ----- local save file -----
+    private static final Path DATA_FILE =
+            Paths.get(System.getProperty("user.home"), "tasktracker_tasks.txt");
 
     public static void main(String[] args) {
         launch(args);
@@ -74,81 +86,92 @@ public class App extends Application {
     }
 
     @Override
-public void start(Stage primaryStage) {
-    this.primaryStage = primaryStage;
-    primaryStage.setTitle("Task Tracker");
+    public void start(Stage primaryStage) {
+        this.primaryStage = primaryStage;
+        primaryStage.setTitle("Task Tracker");
 
-    // ----- MAIN UI -----
-    root = new BorderPane();
+        // load any previously saved tasks
+        loadTasksFromFile();
 
-    VBox leftPane = createFilterPane();
-    VBox centerPane = createTaskListPane(primaryStage);
+        // ----- MAIN UI -----
+        root = new BorderPane();
+        root.setId("pane");
 
-    root.setLeft(leftPane);
-    root.setCenter(centerPane);
+        VBox leftPane = createFilterPane();
+        VBox centerPane = createTaskListPane(primaryStage);
 
-    mainScene = new Scene(root, 1400, 900);
-    mainScene.getStylesheets().add(
-            Objects.requireNonNull(
-                    getClass().getResource("/com/example/style.css")
-            ).toExternalForm()
-    );
+        root.setLeft(leftPane);
+        root.setCenter(centerPane);
 
-    // ----- HOME PAGE -----
-    Parent homeRoot = createHomePage();
-    homeScene = new Scene(homeRoot, 1400, 900);
-    homeScene.getStylesheets().add(
-            Objects.requireNonNull(
-                    getClass().getResource("/com/example/style.css")
-            ).toExternalForm()
-    );
+        mainScene = new Scene(root, 1400, 900);
+        mainScene.getStylesheets().add(
+                Objects.requireNonNull(
+                        getClass().getResource("/com/example/style.css")
+                ).toExternalForm()
+        );
 
-    // show HOME first
-    primaryStage.setScene(homeScene);
-    primaryStage.show();
-}
+        // ----- HOME PAGE -----
+        Parent homeRoot = createHomePage();
+        homeScene = new Scene(homeRoot, 1400, 900);
+        homeScene.getStylesheets().add(
+                Objects.requireNonNull(
+                        getClass().getResource("/com/example/style.css")
+                ).toExternalForm()
+        );
 
-private Parent createHomePage() {
-    // StackPane = background + centered content
-    StackPane root = new StackPane();
-    root.setId("pane");  // uses #pane from style.css (your image)
+        // show HOME first
+        primaryStage.setScene(homeScene);
+        primaryStage.show();
+    }
 
-    VBox box = new VBox(20);
-    box.setAlignment(Pos.CENTER);
+    // called automatically when the app is closing
+    @Override
+    public void stop() {
+        saveTasksToFile();
+    }
 
-    Label title = new Label("TaskTracker");
-    title.setStyle("-fx-font-size: 48px; -fx-text-fill: white; -fx-font-weight: bold;");
+    private Parent createHomePage() {
+        // StackPane = background + centered content
+        StackPane root = new StackPane();
+        root.setId("pane");  // uses #pane from style.css (your image)
 
-    Label subtitle = new Label("Organize your day with ease.");
-    subtitle.setStyle("-fx-font-size: 20px; -fx-text-fill: white;");
+        VBox box = new VBox(20);
+        box.setAlignment(Pos.CENTER);
 
-    Button enterButton = new Button("Press here to enter");
-    enterButton.setStyle("-fx-font-size: 22px; -fx-padding: 10 20 10 20;");
-    enterButton.setOnAction(e -> primaryStage.setScene(mainScene));
+        Label title = new Label("TaskTracker");
+        title.setStyle("-fx-font-size: 48px; -fx-text-fill: white; -fx-font-weight: bold;");
 
-    Button exitButton = new Button("Exit");
-    exitButton.setOnAction(e -> primaryStage.close());
+        Label subtitle = new Label("Organize your day with ease.");
+        subtitle.setStyle("-fx-font-size: 20px; -fx-text-fill: white;");
 
-    box.getChildren().addAll(title, subtitle, enterButton, exitButton);
-    root.getChildren().add(box);
+        Button enterButton = new Button("Press here to enter");
+        enterButton.setStyle("-fx-font-size: 22px; -fx-padding: 10 20 10 20;");
+        enterButton.setOnAction(e -> primaryStage.setScene(mainScene));
 
-    return root;
-}
+        Button exitButton = new Button("Exit");
+        exitButton.setOnAction(e -> primaryStage.close());
+
+        box.getChildren().addAll(title, subtitle, enterButton, exitButton);
+        root.getChildren().add(box);
+
+        return root;
+    }
 
     // -------------------- LEFT: Filters and Sidebar --------------------
 
     private VBox createFilterPane() {
         VBox box = new VBox();
         box.setPadding(new Insets(15));
-        box.setId("pane");
-        box.setFillWidth(true);
-        box.getStylesheets().addAll(
-                this.getClass().getResource("/com/example/style.css").toExternalForm()
-        );
         box.setAlignment(Pos.TOP_CENTER);
         box.setPrefWidth(280);
         box.setMinWidth(280);
         box.setMaxWidth(280);
+
+        // ---- Home button at TOP of sidebar ----
+        Button homeButton = new Button("Home");
+        homeButton.setMaxWidth(Double.MAX_VALUE);
+        homeButton.setOnAction(e -> primaryStage.setScene(homeScene));
+        box.getChildren().add(homeButton);
 
         // --- Account button + menu ---
         HBox accButtonBox = new HBox();
@@ -362,7 +385,9 @@ private Parent createHomePage() {
         if (categoryCombo != null) {
             categoryCombo.setValue("Other");
         }
-        // TODO: Save tasks to file
+
+        // save immediately after adding
+        saveTasksToFile();
     }
 
 
@@ -441,6 +466,8 @@ private Parent createHomePage() {
         Button editTask = new Button();
         editTask.getStyleClass().add("leftPaneButtons");
         editTask.setText("Edit");
+        editTask.setOnAction(e -> handleEditTask());
+
 
         sortMenu = new ComboBox<>();
         sortMenu.getStyleClass().addAll("leftPaneButtons", "comboBox");
@@ -564,9 +591,193 @@ private Parent createHomePage() {
 
     // close a popup window
     public void closePopUp(Stage addStage) {
-            addStage.close();
-            root.setDisable(false);
-            root.setEffect(null);
+        addStage.close();
+        root.setDisable(false);
+        root.setEffect(null);
     }
 
+    // ---------- PERSISTENCE: Save / Load tasks locally ----------
+
+    private void saveTasksToFile() {
+        try {
+            List<String> lines = new ArrayList<>();
+
+            for (Task t : allTasks) {
+                String title = escape(t.getTitle());
+                String description = escape(t.getDescription());
+                LocalDate d = t.getDueDate();
+                String dateStr = (d == null) ? "" : d.toString(); // ISO: yyyy-MM-dd
+                String category = t.getCategory();
+                if (category == null) category = "";
+                category = escape(category);
+
+                String line = String.join("\t", title, description, dateStr, category);
+                lines.add(line);
+            }
+
+            Files.write(DATA_FILE, lines);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadTasksFromFile() {
+        if (!Files.exists(DATA_FILE)) {
+            return;
+        }
+
+        try {
+            List<String> lines = Files.readAllLines(DATA_FILE);
+            allTasks.clear();
+
+            for (String line : lines) {
+                if (line.isBlank()) continue;
+
+                String[] parts = line.split("\t", -1); // keep empty strings
+                if (parts.length < 4) continue;       // bad line, skip
+
+                String title = unescape(parts[0]);
+                String description = unescape(parts[1]);
+
+                String dateStr = parts[2];
+                LocalDate dueDate = dateStr.isEmpty() ? null : LocalDate.parse(dateStr); // ISO
+
+                String category = parts[3].isEmpty() ? "Other" : unescape(parts[3]);
+
+                Task task = new Task(title, description, dueDate, category);
+                allTasks.add(task);
+            }
+
+            updateFilters();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void handleEditTask() {
+    Task selected = taskListView.getSelectionModel().getSelectedItem();
+    int selectedIndex = taskListView.getSelectionModel().getSelectedIndex();
+
+    if (selected == null || selectedIndex < 0) {
+        showAlert(Alert.AlertType.WARNING, "No task selected", "Please select a task to edit.");
+        return;
+    }
+
+    // Main container (no scrollpane)
+    VBox editBox = new VBox(12);
+    editBox.setId("addTaskPopup"); 
+    editBox.getStylesheets().add(
+            Objects.requireNonNull(this.getClass()
+            .getResource("/com/example/style.css")).toExternalForm()
+    );
+    editBox.setPadding(new Insets(20));
+    editBox.setMaxWidth(450);  // << set popup width
+    editBox.setMinWidth(450);
+    editBox.setAlignment(Pos.TOP_LEFT);
+
+    // ---------- Prefilled fields ----------
+    Label lblTitle = new Label("Task Title:");
+    TextField titleField = new TextField(selected.getTitle());
+    titleField.setPrefWidth(400);
+
+    Label lblDesc = new Label("Description:");
+    TextArea descField = new TextArea(selected.getDescription());
+    descField.setPrefRowCount(3);
+    descField.setPrefWidth(400);
+
+    Label lblDue = new Label("Due Date:");
+    DatePicker datePicker = new DatePicker(selected.getDueDate());
+
+    Label lblCat = new Label("Category:");
+    ComboBox<String> catBox = new ComboBox<>();
+    catBox.getItems().addAll("Work", "School", "Home", "Other");
+    String currentCategory = selected.getCategory();
+    if (currentCategory == null || currentCategory.isBlank()) {
+        currentCategory = "Other";
+    }
+    catBox.setValue(currentCategory);
+
+    // Buttons
+    Button saveButton = new Button("Save Changes");
+    Button deleteButton = new Button("Delete Task");
+    deleteButton.setId("deleteTaskButton");
+
+    HBox buttonRow = new HBox(12, saveButton, deleteButton);
+    buttonRow.setAlignment(Pos.CENTER_RIGHT);
+
+    // ---------- SAVE ----------
+    saveButton.setOnAction(e -> {
+        String newTitle = titleField.getText().trim();
+        String newDesc = descField.getText().trim();
+        LocalDate newDate = datePicker.getValue();
+        String newCat = catBox.getValue();
+
+        if (newTitle.isEmpty() || newDate == null) {
+            showAlert(Alert.AlertType.WARNING,
+                    "Missing data", "Please enter a title and select a due date.");
+            return;
+        }
+
+        if (newCat == null || newCat.isBlank()) newCat = "Other";
+
+        Task updatedTask = new Task(newTitle, newDesc, newDate, newCat);
+        allTasks.set(selectedIndex, updatedTask);
+        taskListView.getSelectionModel().select(selectedIndex);
+        taskListView.refresh();
+        saveTasksToFile();
+        editStage.close();
+    });
+
+    // ---------- DELETE ----------
+    deleteButton.setOnAction(e -> {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Delete Task");
+        confirm.setHeaderText("Delete this task?");
+        confirm.setContentText("This cannot be undone.");
+
+        confirm.showAndWait().ifPresent(result -> {
+            if (result == ButtonType.OK) {
+                allTasks.remove(selectedIndex);
+                taskListView.refresh();
+                saveTasksToFile();
+                editStage.close();
+            }
+        });
+    });
+
+    // Add everything to editBox
+    editBox.getChildren().addAll(
+            lblTitle, titleField,
+            lblDesc, descField,
+            lblDue, datePicker,
+            lblCat, catBox,
+            buttonRow
+    );
+
+    // Show popup
+    editStage = new Stage();
+    Scene scene = new Scene(editBox);
+    editStage.setScene(scene);
+    editStage.initStyle(StageStyle.UNDECORATED);
+    editStage.initOwner(primaryStage);
+    editStage.show();
+}
+
+
+
+    private String escape(String s) {
+        if (s == null) return "";
+        return s
+                .replace("\\", "\\\\")
+                .replace("\t", "\\t")
+                .replace("\n", "\\n");
+    }
+
+    private String unescape(String s) {
+        if (s == null) return "";
+        return s
+                .replace("\\t", "\t")
+                .replace("\\n", "\n")
+                .replace("\\\\", "\\");
+    }
 }
