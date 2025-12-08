@@ -1,6 +1,7 @@
 #pane {
     -fx-background-image: url('defaultBackground.jpg');
-    -fx-background-position: Center;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
 }
 
 #accountButton {
@@ -95,3 +96,39 @@
     -fx-effect: dropshadow(three-pass-box, #000000, 1, 2, 0, 4);
     -fx-background-insets: 0;
 }
+
+.leftPaneButtons {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 20;
+    -fx-border-color: #000000;
+    -fx-border-radius: 20;
+    -fx-background-insets: 0;
+    -fx-effect: dropshadow(gaussian, #000000, 1, 2, 1, 1);
+    -fx-alignment: center center;
+    -fx-pref-width: 100;
+    -fx-pref-height: 7;
+    -fx-spacing: 10;
+    -fx-font-size: 10px;
+}
+
+#addTaskPopup{
+    -fx-background-color: #ABBFB1;
+}
+
+#exitButton {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 2;
+}
+
+#subtaskScrollPane {
+    -fx-background-color: #FFFCF3;
+}
+#addTaskBox{
+    -fx-padding: 20;
+    -fx-background-color: #FFFCF3;
+}
+
+
+
+

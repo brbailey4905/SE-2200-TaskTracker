@@ -55,6 +55,10 @@ public class App extends Application {
 
     private ToggleGroup viewToggleGroup;
 
+    private Stage primaryStage;
+    private Scene homeScene;
+    private Scene mainScene;
+
     // filters we combine: date + category
     private Predicate<Task> dateFilter = t -> true;
     private Predicate<Task> categoryFilter = t -> true;
@@ -70,21 +74,66 @@ public class App extends Application {
     }
 
     @Override
-    public void start(Stage primaryStage) {
-        primaryStage.setTitle("Task Tracker");
+public void start(Stage primaryStage) {
+    this.primaryStage = primaryStage;
+    primaryStage.setTitle("Task Tracker");
 
-        root = new BorderPane();
+    // ----- MAIN UI -----
+    root = new BorderPane();
 
-        VBox leftPane = createFilterPane();
-        VBox centerPane = createTaskListPane(primaryStage);
+    VBox leftPane = createFilterPane();
+    VBox centerPane = createTaskListPane(primaryStage);
 
-        root.setLeft(leftPane);
-        root.setCenter(centerPane);
+    root.setLeft(leftPane);
+    root.setCenter(centerPane);
 
-        Scene scene = new Scene(root, 1400, 900);
-        primaryStage.setScene(scene);
-        primaryStage.show();
-    }
+    mainScene = new Scene(root, 1400, 900);
+    mainScene.getStylesheets().add(
+            Objects.requireNonNull(
+                    getClass().getResource("/com/example/style.css")
+            ).toExternalForm()
+    );
+
+    // ----- HOME PAGE -----
+    Parent homeRoot = createHomePage();
+    homeScene = new Scene(homeRoot, 1400, 900);
+    homeScene.getStylesheets().add(
+            Objects.requireNonNull(
+                    getClass().getResource("/com/example/style.css")
+            ).toExternalForm()
+    );
+
+    // show HOME first
+    primaryStage.setScene(homeScene);
+    primaryStage.show();
+}
+
+private Parent createHomePage() {
+    // StackPane = background + centered content
+    StackPane root = new StackPane();
+    root.setId("pane");  // uses #pane from style.css (your image)
+
+    VBox box = new VBox(20);
+    box.setAlignment(Pos.CENTER);
+
+    Label title = new Label("TaskTracker");
+    title.setStyle("-fx-font-size: 48px; -fx-text-fill: white; -fx-font-weight: bold;");
+
+    Label subtitle = new Label("Organize your day with ease.");
+    subtitle.setStyle("-fx-font-size: 20px; -fx-text-fill: white;");
+
+    Button enterButton = new Button("Press here to enter");
+    enterButton.setStyle("-fx-font-size: 22px; -fx-padding: 10 20 10 20;");
+    enterButton.setOnAction(e -> primaryStage.setScene(mainScene));
+
+    Button exitButton = new Button("Exit");
+    exitButton.setOnAction(e -> primaryStage.close());
+
+    box.getChildren().addAll(title, subtitle, enterButton, exitButton);
+    root.getChildren().add(box);
+
+    return root;
+}
 
     // -------------------- LEFT: Filters and Sidebar --------------------
 
